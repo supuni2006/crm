@@ -197,11 +197,24 @@ export class PostgresDatabase {
 let cached: { url: string; pool: Pool; db: PostgresDatabase } | undefined
 let schema: Promise<void> | undefined
 
+/**
+ * `pg-connection-string` turns `?sslmode=require` into its own TLS options, which
+ * override the `ssl` we pass and then reject managed certificates (Supabase and
+ * most poolers present a chain Node does not carry). Drop those parameters so the
+ * explicit configuration below is the only thing that decides TLS.
+ */
+export function withoutSslParams(url: string): string {
+  const parsed = new URL(url)
+  parsed.searchParams.delete('sslmode')
+  parsed.searchParams.delete('ssl')
+  return parsed.toString()
+}
+
 /** One pool per warm serverless instance, created on first use. */
 export function getDatabase(url: string): PostgresDatabase {
   if (cached?.url !== url) {
     const pool = new Pool({
-      connectionString: url,
+      connectionString: withoutSslParams(url),
       max: 3,
       idleTimeoutMillis: 10_000,
       connectionTimeoutMillis: 10_000,

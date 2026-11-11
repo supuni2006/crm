@@ -8,6 +8,7 @@
     "build": "vite build && node scripts/postbuild.mjs",
     "build:vercel": "vite build --config vite.vercel.config.ts && node scripts/postbuild.mjs && node scripts/build-api.mjs",
     "postinstall": "node scripts/build-api.mjs",
+    "vercel:env": "node scripts/vercel-env.mjs",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit"
   },

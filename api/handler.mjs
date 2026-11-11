@@ -9633,10 +9633,16 @@ var PostgresDatabase = class {
 };
 var cached;
 var schema;
+function withoutSslParams(url) {
+  const parsed = new URL(url);
+  parsed.searchParams.delete("sslmode");
+  parsed.searchParams.delete("ssl");
+  return parsed.toString();
+}
 function getDatabase(url) {
   if (cached?.url !== url) {
     const pool = new Pool({
-      connectionString: url,
+      connectionString: withoutSslParams(url),
       max: 3,
       idleTimeoutMillis: 1e4,
       connectionTimeoutMillis: 1e4,
