@@ -17,6 +17,21 @@ On localhost without a `FREEBUFF_CLIENT_ID`, the app signs you in as a local
 development user so everything works before auth is provisioned. A new
 workspace is seeded with sample data; Settings can restore or clear it.
 
+## Deployed preview
+
+Live at <https://site-6ecf8d927bb64cd884b2b088e3003dfc.freebuff.page> (Freebuff
+Sites, `preview` environment). Provisioned for that environment:
+
+- D1 database bound as `DB` and R2 bucket bound as `FILES`.
+- Sign in with Freebuff enabled, with `http://localhost:5173` registered as the
+  local development origin.
+- `FREEBUFF_CLIENT_ID`, `FREEBUFF_ISSUER` and `APP_ORIGIN` injected at deploy
+  time. The production environment has not been deployed yet.
+
+For local development against real accounts, `.dev.vars` holds the separate
+development client (see `.dev.vars.example`); it is gitignored and the
+production client ID must never be copied into it.
+
 ## Connect it to Freebuff
 
 1. `sites_create`, then `sites_add_storage` for D1 named `DB` and R2 named `FILES`.
