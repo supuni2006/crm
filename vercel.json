@@ -1,13 +1,10 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": null,
-  "installCommand": "echo 'no dependencies needed for the proxy'",
-  "buildCommand": "echo 'nothing to build: every request is proxied'",
-  "outputDirectory": "public",
+  "buildCommand": "npm run build:vercel",
+  "outputDirectory": "dist",
   "rewrites": [
-    {
-      "source": "/(.*)",
-      "destination": "https://site-6ecf8d927bb64cd884b2b088e3003dfc.freebuff.page/$1"
-    }
+    { "source": "/api/(.*)", "destination": "/api/handler" },
+    { "source": "/(.*)", "destination": "/index.html" }
   ]
 }

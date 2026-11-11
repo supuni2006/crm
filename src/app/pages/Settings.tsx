@@ -45,6 +45,15 @@ export function Settings() {
               <input type="hidden" name="returnTo" value="/" />
               <Button type="submit">Sign out</Button>
             </form>
+          ) : me.capabilities.auth === 'password' ? (
+            <Button
+              onClick={async () => {
+                await api('/auth/signout', { method: 'POST' })
+                window.location.assign('/')
+              }}
+            >
+              Sign out
+            </Button>
           ) : (
             <Badge tone="warning">Development user</Badge>
           )}

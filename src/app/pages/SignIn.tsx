@@ -1,12 +1,51 @@
 import { motion } from 'motion/react'
+import { useQueryClient } from '@tanstack/react-query'
+import { useEffect, useState } from 'react'
+import type { FormEvent } from 'react'
 import { ArrowRight, Database } from 'lucide-react'
 
+import { api } from '../lib/api'
 import { Avatar } from '../components/ui'
 
-// Shown when /api/me returns 401. Sign-in is a plain link to the SDK route; the
-// Worker (not this page) decides who is signed in.
+// Shown when /api/me returns 401. The deployment decides how it signs in: the
+// Vercel build checks APP_PASSWORD, the Sites build hands off to Freebuff.
 export function SignIn() {
-  const returnTo = encodeURIComponent(`${window.location.pathname}${window.location.search}`)
+  const returnTo = `${window.location.pathname}${window.location.search}`
+  const queryClient = useQueryClient()
+  const [mode, setMode] = useState<'checking' | 'password' | 'freebuff'>('checking')
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState<string | null>(null)
+  const [busy, setBusy] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    fetch('/api/auth/status', { credentials: 'same-origin' })
+      .then((response) => response.json() as Promise<{ mode?: string }>)
+      .then((body) => {
+        if (!cancelled) setMode(body.mode === 'password' ? 'password' : 'freebuff')
+      })
+      .catch(() => {
+        if (!cancelled) setMode('freebuff')
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  async function submit(event: FormEvent) {
+    event.preventDefault()
+    setBusy(true)
+    setError(null)
+    try {
+      await api('/auth/signin', { method: 'POST', json: { password } })
+      await queryClient.invalidateQueries({ queryKey: ['me'] })
+    } catch (problem) {
+      setError(problem instanceof Error ? problem.message : 'Could not sign in.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
   return (
     <div className="grid h-full lg:grid-cols-2">
       <div className="flex flex-col justify-between p-8 sm:p-12">
@@ -25,15 +64,46 @@ export function SignIn() {
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }} className="max-w-sm">
           <h1 className="text-balance text-[34px] font-semibold leading-[1.1] tracking-[-0.025em]">Every relationship, in one quiet place</h1>
           <p className="mt-3 text-[15px] leading-relaxed text-muted">Contacts, companies, deals and the notes that connect them. Sign in to open your workspace.</p>
-          <a
-            href={`/auth/freebuff/signin?returnTo=${returnTo}`}
-            className="mt-8 inline-flex h-11 items-center gap-2 rounded-control bg-fg px-5 text-[14px] font-medium text-white transition-colors hover:bg-[#26262c]"
-          >
-            <span className="grid size-5 place-items-center rounded-[6px] bg-white text-[11px] font-bold text-fg">F</span>
-            Sign in with Freebuff
-            <ArrowRight className="size-4" />
-          </a>
-          <p className="mt-4 text-[12.5px] text-faint">Uses your Freebuff account. Nothing to install and no passwords to remember.</p>
+          {mode === 'password' ? (
+            <form onSubmit={submit} className="mt-8 max-w-xs">
+              <label htmlFor="password" className="block text-[12.5px] font-medium text-muted">
+                Workspace password
+              </label>
+              <input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                autoComplete="current-password"
+                required
+                autoFocus
+                className="mt-2 h-11 w-full rounded-control border border-line bg-surface px-3 text-[14px] outline-none focus:border-fg/30"
+              />
+              <button
+                type="submit"
+                disabled={busy || password.length === 0}
+                className="mt-3 inline-flex h-11 w-full items-center justify-center gap-2 rounded-control bg-fg px-5 text-[14px] font-medium text-white transition-colors hover:bg-[#26262c] disabled:opacity-60"
+              >
+                {busy ? 'Signing in…' : 'Sign in'}
+                <ArrowRight className="size-4" />
+              </button>
+              {error && <p className="mt-3 text-[12.5px] text-muted">{error}</p>}
+            </form>
+          ) : mode === 'freebuff' ? (
+            <>
+              <a
+                href={`/auth/freebuff/signin?returnTo=${encodeURIComponent(returnTo)}`}
+                className="mt-8 inline-flex h-11 items-center gap-2 rounded-control bg-fg px-5 text-[14px] font-medium text-white transition-colors hover:bg-[#26262c]"
+              >
+                <span className="grid size-5 place-items-center rounded-[6px] bg-white text-[11px] font-bold text-fg">F</span>
+                Sign in with Freebuff
+                <ArrowRight className="size-4" />
+              </a>
+              <p className="mt-4 text-[12.5px] text-faint">Uses your Freebuff account. Nothing to install and no passwords to remember.</p>
+            </>
+          ) : (
+            <p className="mt-8 text-[12.5px] text-faint">Checking how this deployment signs in…</p>
+          )}
         </motion.div>
 
         <p className="text-[12.5px] text-faint">© {new Date().getFullYear()} Your Company</p>

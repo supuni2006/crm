@@ -10,6 +10,11 @@ export interface Env {
   FREEBUFF_CLIENT_ID?: string
   FREEBUFF_ISSUER?: string
   APP_ORIGIN?: string
+  // Set on the Vercel deployment only (see src/vercel): Postgres connection
+  // string plus the password and signing secret for its session cookie.
+  DATABASE_URL?: string
+  APP_PASSWORD?: string
+  APP_SECRET?: string
 }
 
 export type Variables = {

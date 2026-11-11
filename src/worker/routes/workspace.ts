@@ -27,7 +27,7 @@ workspace.get('/me', async (c) => {
     capabilities: {
       database: true,
       files: Boolean(c.env.FILES),
-      auth: authMode(c.env, c.req.raw) === 'freebuff' ? 'freebuff' : 'development',
+      auth: c.env.APP_PASSWORD ? 'password' : authMode(c.env, c.req.raw) === 'freebuff' ? 'freebuff' : 'development',
     },
   }
   return privateJson(c, body)

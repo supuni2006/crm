@@ -101,7 +101,7 @@ export interface StoredFile {
 export interface Me {
   user: { sub: string; name?: string; email?: string; picture?: string }
   workspace: { name: string; seededAt: number | null }
-  capabilities: { database: boolean; files: boolean; auth: 'freebuff' | 'development' }
+  capabilities: { database: boolean; files: boolean; auth: 'freebuff' | 'development' | 'password' }
 }
 
 export interface Overview {
