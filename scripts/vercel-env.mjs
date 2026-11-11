@@ -108,6 +108,9 @@ async function discover(ref, password) {
   const candidates = candidatesFor(ref, password);
   console.log(`  probing ${candidates.length} Supabase endpoints, 6 at a time…`);
   const failures = [];
+  // A pooler that recognises the project but rejects the password proves the
+  // host is right: that is a very different problem from an unreachable project.
+  const hostsThisProject = [];
   for (let start = 0; start < candidates.length; start += 6) {
     const batch = candidates.slice(start, start + 6);
     const results = await Promise.all(batch.map(async (url) => ({ url, result: await tryConnect(url) })));
@@ -116,6 +119,11 @@ async function discover(ref, password) {
       if (result.ok) {
         console.log(`  ✓ ${label} accepted the credentials`);
         return url;
+      }
+      if (result.code === '28P01' || /password authentication failed/i.test(result.message || '')) {
+        if (!hostsThisProject.includes(label)) hostsThisProject.push(label);
+        console.log(`  ✓ ${label} hosts this project — password rejected`);
+        continue;
       }
       const reason = /timeout|ETIMEDOUT/i.test(`${result.code} ${result.message}`) ? 'connection timed out' : (result.message || result.code || 'refused');
       failures.push(reason);
@@ -126,7 +134,10 @@ async function discover(ref, password) {
   for (const reason of failures) tally.set(reason, (tally.get(reason) || 0) + 1);
   console.error('  no endpoint accepted the credentials:');
   for (const [reason, count] of [...tally.entries()].sort((a, b) => b[1] - a[1])) console.error(`    ${count}× ${reason}`);
-  fail('cannot reach Supabase — check the database password, the project ref, and that the project is running (not paused)');
+  if (hostsThisProject.length) {
+    fail(`the project is live and served by ${hostsThisProject[0]} — only SUPABASE_DB_PASSWORD is wrong.\n    Reset it in Supabase → Project Settings → Database, then re-run.`);
+  }
+  fail('cannot reach Supabase — check the project ref and that the project is running (not paused)');
 }
 
 function describe(connectionString) {
